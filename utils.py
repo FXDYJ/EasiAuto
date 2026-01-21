@@ -364,11 +364,12 @@ def get_dpi_scale() -> float:
     try:
         # 设置 DPI 感知，确保获取到正确的 DPI 值
         ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-    except Exception:
+    except (OSError, AttributeError):
+        # 可能已经设置过或 API 不可用
         try:
             # 回退到旧的 API
             ctypes.windll.user32.SetProcessDPIAware()
-        except Exception:
+        except (OSError, AttributeError):
             pass
     
     try:
@@ -381,7 +382,7 @@ def get_dpi_scale() -> float:
         scale = dpi / 96.0
         logger.debug(f"检测到 DPI 缩放比例: {scale} ({int(scale * 100)}%)")
         return scale
-    except Exception as e:
+    except (OSError, AttributeError) as e:
         logger.warning(f"获取 DPI 缩放比例失败: {e}，使用默认值 1.0")
         return 1.0
 
