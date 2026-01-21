@@ -8,7 +8,7 @@ from loguru import logger
 from PySide6.QtCore import QThread, Signal
 
 from config import LoginConfig
-from utils import get_dpi_scale, get_resource, switch_window
+from utils import get_dpi_scale, get_resource, scale_template_image, switch_window
 
 
 class QABCMeta(type(QThread), ABCMeta):  # type: ignore
@@ -157,20 +157,25 @@ class CVAutomator(BaseAutomator):
         if self.config.Directly:
             path_suffix += "_direct"
         
-        # 自动检测 DPI 缩放比例，用于坐标计算
+        # 自动检测 DPI 缩放比例，用于坐标计算和模板缩放
         dpi_scale = get_dpi_scale()
         
         # 对于模板图片，仍然使用 Is4K 配置来选择 4K 模板
         # 当缩放比例 >= 2.0 时建议使用 4K 模板以获得更好的匹配效果
         if self.config.Is4K:
             path_suffix += "_4k"
+            # 如果使用 4K 模板，模板缩放比例需要相对于 2.0 来计算
+            template_scale = dpi_scale / 2.0
+        else:
+            # 使用标准模板，模板缩放比例等于 DPI 缩放比例
+            template_scale = dpi_scale
         
-        logger.debug(f"使用 DPI 缩放比例: {dpi_scale}, Is4K 模板: {self.config.Is4K}")
+        logger.debug(f"使用 DPI 缩放比例: {dpi_scale}, Is4K 模板: {self.config.Is4K}, 模板缩放: {template_scale}")
 
-        # 获取资源图片
-        button_img = get_resource(f"button{path_suffix}.png")
-        button_img_selected = get_resource(f"button_selected{path_suffix}.png")
-        checkbox_img = get_resource(f"checkbox{path_suffix}.png")
+        # 获取资源图片并根据 DPI 缩放
+        button_img = scale_template_image(get_resource(f"button{path_suffix}.png"), template_scale)
+        button_img_selected = scale_template_image(get_resource(f"button_selected{path_suffix}.png"), template_scale)
+        checkbox_img = scale_template_image(get_resource(f"checkbox{path_suffix}.png"), template_scale)
 
         # 进入登录界面
         if not self.config.Directly:

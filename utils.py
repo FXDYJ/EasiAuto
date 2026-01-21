@@ -387,6 +387,64 @@ def get_dpi_scale() -> float:
         return 1.0
 
 
+def scale_template_image(image_path: str, scale: float) -> str:
+    """
+    根据 DPI 缩放比例缩放模板图片。
+    
+    模板图片是在 100% 缩放下捕获的，需要按当前 DPI 缩放比例放大，
+    这样才能与当前屏幕上的 UI 元素匹配。
+    
+    Args:
+        image_path: 原始模板图片路径
+        scale: DPI 缩放比例（如 1.25 表示 125%）
+    
+    Returns:
+        str: 缩放后的临时图片路径（如果 scale == 1.0，返回原始路径）
+    """
+    import tempfile
+    
+    # 如果缩放比例接近 1.0，直接返回原始图片
+    if abs(scale - 1.0) < 0.01:
+        return image_path
+    
+    try:
+        import cv2
+        
+        # 读取原始模板图片
+        img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            logger.warning(f"无法读取模板图片: {image_path}，使用原始图片")
+            return image_path
+        
+        # 计算新的尺寸
+        height, width = img.shape[:2]
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        
+        # 缩放图片，使用 INTER_CUBIC 插值以获得更好的质量
+        scaled_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+        
+        # 保存到临时文件，包含缩放比例以避免冲突
+        temp_dir = tempfile.gettempdir()
+        scale_str = f"{scale:.2f}".replace(".", "_")
+        temp_path = os.path.join(temp_dir, f"easiauto_scaled_{scale_str}_{os.path.basename(image_path)}")
+        
+        success = cv2.imwrite(temp_path, scaled_img)
+        if not success:
+            logger.warning(f"保存缩放后的模板图片失败: {temp_path}，使用原始图片")
+            return image_path
+        
+        logger.debug(f"已缩放模板图片: {os.path.basename(image_path)} ({width}x{height} -> {new_width}x{new_height})")
+        return temp_path
+        
+    except ImportError:
+        logger.warning("无法导入 OpenCV，使用原始模板图片")
+        return image_path
+    except Exception as e:
+        logger.warning(f"缩放模板图片失败: {e}，使用原始图片")
+        return image_path
+
+
 def create_shortcut(args: str, name: str, show_result_to: QWidget | None = None):
     """创建 EasiAuto 桌面快捷方式"""
     try:
