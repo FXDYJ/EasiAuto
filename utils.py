@@ -1,4 +1,5 @@
 import atexit
+import ctypes
 import datetime as dt
 import os
 import signal
@@ -351,6 +352,38 @@ def check_singleton() -> bool:
 def get_resource(file: str):
     """获取资源路径"""
     return str(EA_EXECUTABLE.parent / "resources" / file)
+
+
+def get_dpi_scale() -> float:
+    """
+    获取当前 Windows 显示器的 DPI 缩放比例。
+    
+    Returns:
+        float: DPI 缩放比例（如 1.0 表示 100%，1.25 表示 125%，2.0 表示 200%）
+    """
+    try:
+        # 设置 DPI 感知，确保获取到正确的 DPI 值
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+    except Exception:
+        try:
+            # 回退到旧的 API
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+    
+    try:
+        # 获取主显示器的 DPI
+        hdc = ctypes.windll.user32.GetDC(0)
+        dpi = ctypes.windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX = 88
+        ctypes.windll.user32.ReleaseDC(0, hdc)
+        
+        # 标准 DPI 是 96，缩放比例 = 当前 DPI / 96
+        scale = dpi / 96.0
+        logger.debug(f"检测到 DPI 缩放比例: {scale} ({int(scale * 100)}%)")
+        return scale
+    except Exception as e:
+        logger.warning(f"获取 DPI 缩放比例失败: {e}，使用默认值 1.0")
+        return 1.0
 
 
 def create_shortcut(args: str, name: str, show_result_to: QWidget | None = None):

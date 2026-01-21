@@ -8,7 +8,7 @@ from loguru import logger
 from PySide6.QtCore import QThread, Signal
 
 from config import LoginConfig
-from utils import get_resource, switch_window
+from utils import get_dpi_scale, get_resource, switch_window
 
 
 class QABCMeta(type(QThread), ABCMeta):  # type: ignore
@@ -156,9 +156,16 @@ class CVAutomator(BaseAutomator):
         path_suffix = ""
         if self.config.Directly:
             path_suffix += "_direct"
+        
+        # 自动检测 DPI 缩放比例，用于坐标计算
+        dpi_scale = get_dpi_scale()
+        
+        # 对于模板图片，仍然使用 Is4K 配置来选择 4K 模板
+        # 当缩放比例 >= 2.0 时建议使用 4K 模板以获得更好的匹配效果
         if self.config.Is4K:
             path_suffix += "_4k"
-        scale = 2 if self.config.Is4K else 1
+        
+        logger.debug(f"使用 DPI 缩放比例: {dpi_scale}, Is4K 模板: {self.config.Is4K}")
 
         # 获取资源图片
         button_img = get_resource(f"button{path_suffix}.png")
@@ -170,7 +177,7 @@ class CVAutomator(BaseAutomator):
             logger.info("点击进入登录界面")
             self.progress_update.emit("进入登录界面")
 
-            pyautogui.click(172 * scale, 1044 * scale)
+            pyautogui.click(int(172 * dpi_scale), int(1044 * dpi_scale))
             time.sleep(self.config.Timeout.EnterLoginUI)
         else:
             logger.info("直接进入登录界面")
@@ -205,7 +212,7 @@ class CVAutomator(BaseAutomator):
         self.progress_update.emit("输入账号")
         logger.debug(f"账号：{self.account}")
 
-        pyautogui.click(button_button.x, button_button.y + 70 * scale)
+        pyautogui.click(button_button.x, int(button_button.y + 70 * dpi_scale))
         pyautogui.hotkey("ctrl", "a")
         pyautogui.press("backspace")
         pyautogui.typewrite(self.account)
@@ -215,7 +222,7 @@ class CVAutomator(BaseAutomator):
         self.progress_update.emit("输入密码")
         logger.debug(f"密码：{self.password}")
 
-        pyautogui.click(button_button.x, button_button.y + 134 * scale)
+        pyautogui.click(button_button.x, int(button_button.y + 134 * dpi_scale))
         pyautogui.typewrite(self.password)
 
         # 识别并勾选用户协议复选框
@@ -239,7 +246,7 @@ class CVAutomator(BaseAutomator):
         logger.info("点击登录按钮")
         self.progress_update.emit("点击登录")
 
-        pyautogui.click(button_button.x, button_button.y + 198 * scale)
+        pyautogui.click(button_button.x, int(button_button.y + 198 * dpi_scale))
 
         self.progress_update.emit("登录完成")
         self.task_update.emit("完成")

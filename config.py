@@ -119,7 +119,7 @@ class LoginConfig(ConfigModel):
     Method: LoginMethod = Field(
         default=LoginMethod.UI_AUTOMATION,
         title="登录方式",
-        description="选择用于进行自动登录的方式（OpenCV仅支持常规分辨率与缩放）\nUIA 最稳定 / OpenCV 较快 / 固定位置暂不可用",
+        description="选择用于进行自动登录的方式（OpenCV 已支持自动 DPI 缩放检测）\nUIA 最稳定 / OpenCV 较快 / 固定位置暂不可用",
         json_schema_extra={"icon": "Application"},
     )
     SkipOnce: bool = Field(
@@ -142,8 +142,8 @@ class LoginConfig(ConfigModel):
     )
     Is4K: bool = Field(
         default=False,
-        title="OpenCV 4K 适配",
-        description="在 OpenCV 图像识别 登录方式下，启用对 3840x2160 200% 缩放的支持",
+        title="OpenCV 4K 模板",
+        description="使用 4K 分辨率模板图片以获得更好的匹配效果（适用于 3840x2160 等高分辨率显示器）\n坐标缩放已自动根据系统 DPI 设置调整",
         json_schema_extra={"icon": "FitPage"},
     )
 
